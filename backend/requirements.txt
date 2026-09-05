@@ -2,3 +2,13 @@ asgiref==3.12.1
 Django==6.1.1
 python-dotenv==1.2.3
 sqlparse==0.6.0
+
+# REST API framework
+djangorestframework==3.18.0
+django-cors-headers==4.9.0
+
+# HTTP client for external providers (Open-Meteo, LLM)
+httpx==0.28.1
+
+# PostgreSQL driver - deployment target (SQLite used for local dev)
+psycopg[binary]==3.3.5
