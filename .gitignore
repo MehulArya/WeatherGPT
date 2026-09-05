@@ -1,9 +1,0 @@
-.gitignore
-# Python virtual environment
-.venv
-
-# Environment variables (secrets)
-.env
-
-# Implementation documentation
-implementation.md
