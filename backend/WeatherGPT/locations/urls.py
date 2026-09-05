@@ -1,5 +1,7 @@
 from django.urls import path
 
+from locations.views import LocationSearchView
+
 urlpatterns = [
-    # Phase 3: GET /api/weather/location/?query=Jaipur
+    path('', LocationSearchView.as_view()),
 ]

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'common',
     'weather',
     'locations',
     'chatbot',
@@ -95,6 +96,7 @@ REST_FRAMEWORK = {
         # AllowAny for the demo MVP; tighten per-endpoint as needed
         'rest_framework.permissions.AllowAny',
     ],
+    'EXCEPTION_HANDLER': 'common.errors.api_exception_handler',
 }
 
 

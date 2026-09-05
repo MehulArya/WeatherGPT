@@ -9,6 +9,8 @@ from weather.providers.base import WeatherProvider
 from weather.providers.open_meteo import OpenMeteoError, OpenMeteoProvider
 from weather.services import WeatherService
 
+from common.errors import WeatherProviderError
+
 CURRENT_PAYLOAD = {
     "latitude": 26.9124,
     "longitude": 75.7873,
@@ -123,7 +125,7 @@ class ServiceNormalizationTests(TestCase):
 
     def test_provider_error_propagates(self):
         broken = WeatherService(make_provider(lambda request: httpx.Response(500, text="boom")))
-        with self.assertRaises(OpenMeteoError):
+        with self.assertRaises(WeatherProviderError):
             broken.current(26.9124, 75.7873)
 
 

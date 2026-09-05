@@ -1,8 +1,9 @@
 from datetime import date, timedelta
 from typing import Any, Dict, Optional
 
+from common.errors import WeatherProviderError
 from weather.providers.base import WeatherProvider
-from weather.providers.open_meteo import OpenMeteoProvider
+from weather.providers.open_meteo import OpenMeteoError, OpenMeteoProvider
 from weather.wmo import condition_for
 
 MAX_FORECAST_DAYS = 16
@@ -18,7 +19,10 @@ class WeatherService:
         longitude: float,
         location_name: Optional[str] = None,
     ) -> Dict[str, Any]:
-        raw = self.provider.get_current_weather(latitude, longitude)
+        try:
+            raw = self.provider.get_current_weather(latitude, longitude)
+        except OpenMeteoError as exc:
+            raise WeatherProviderError() from exc
         current = raw["current"]
         return {
             "location": {
@@ -48,7 +52,10 @@ class WeatherService:
 
         start_date = date.today()
         end_date = start_date + timedelta(days=days - 1)
-        raw = self.provider.get_forecast(latitude, longitude, start_date, end_date)
+        try:
+            raw = self.provider.get_forecast(latitude, longitude, start_date, end_date)
+        except OpenMeteoError as exc:
+            raise WeatherProviderError() from exc
         daily = raw["daily"]
 
         forecasts = [
