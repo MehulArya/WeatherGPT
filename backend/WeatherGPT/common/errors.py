@@ -1,17 +1,8 @@
-"""Shared API error envelope (implementation.md section 25).
-
-Every API error returns:
-    {"error": {"code": "<CODE>", "message": "<human readable>"}}
-
-Views never write try/except blocks - services raise ApiError subclasses
-and the custom DRF exception handler converts them to the envelope.
-"""
 from rest_framework import serializers
 from rest_framework import exceptions as drf_exceptions
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
-# Error codes (implementation.md section 25)
 ERROR_LOCATION_NOT_FOUND = "LOCATION_NOT_FOUND"
 ERROR_WEATHER_PROVIDER = "WEATHER_PROVIDER_ERROR"
 ERROR_WEATHER_UNAVAILABLE = "WEATHER_DATA_UNAVAILABLE"

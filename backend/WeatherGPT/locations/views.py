@@ -1,7 +1,4 @@
-"""Thin generic API view for location search.
-
-Business logic lives in `locations.services.LocationService`.
-"""
+"Thin generic API view for location search."
 from rest_framework import generics
 from rest_framework.response import Response
 
