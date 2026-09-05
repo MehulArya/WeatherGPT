@@ -1,5 +1,3 @@
-"""URL configuration for the locations app."""
-
 from django.urls import path
 
 urlpatterns = [

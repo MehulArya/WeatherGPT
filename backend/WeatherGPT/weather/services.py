@@ -1,8 +1,3 @@
-"""Application-level weather operations.
-
-Owns the normalized internal weather model (implementation.md section 11).
-Views stay thin and delegate here.
-"""
 from datetime import date, timedelta
 from typing import Any, Dict, Optional
 

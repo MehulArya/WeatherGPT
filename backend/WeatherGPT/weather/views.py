@@ -1,7 +1,3 @@
-"""Thin generic API views for current weather and forecast.
-
-Business logic lives in `weather.services.WeatherService`.
-"""
 from rest_framework import generics
 from rest_framework.response import Response
 

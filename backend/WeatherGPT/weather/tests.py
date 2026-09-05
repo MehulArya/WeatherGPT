@@ -1,4 +1,3 @@
-"""Tests for the weather data layer (providers, service, serializers, views)."""
 from datetime import date
 from unittest.mock import patch
 

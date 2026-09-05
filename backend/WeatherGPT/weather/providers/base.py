@@ -1,8 +1,3 @@
-"""Weather provider contract.
-
-Application code depends on this interface, never on a concrete provider
-(Strategy pattern, implementation.md section 18).
-"""
 from abc import ABC, abstractmethod
 from datetime import date
 from typing import Any, Dict

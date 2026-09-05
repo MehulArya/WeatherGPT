@@ -1,5 +1,3 @@
-"""URL configuration for the alerts app."""
-
 from django.urls import path
 
 urlpatterns = [

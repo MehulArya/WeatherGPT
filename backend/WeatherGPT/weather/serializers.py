@@ -1,7 +1,3 @@
-"""Generic serializers for weather query parameters.
-
-Pure validation - zero hand-written per-field logic.
-"""
 from rest_framework import serializers
 
 
