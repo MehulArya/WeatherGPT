@@ -2,6 +2,9 @@
 
 from django.urls import path
 
+from weather.views import CurrentWeatherView, ForecastView
+
 urlpatterns = [
-    # Phase 2/3: GET /api/weather/current/, GET /api/weather/forecast/
+    path('current/', CurrentWeatherView.as_view()),
+    path('forecast/', ForecastView.as_view()),
 ]
