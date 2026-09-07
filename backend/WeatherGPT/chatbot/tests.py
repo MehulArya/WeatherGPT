@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from chatbot.models import Conversation, Message
 from chatbot.query import parse_and_validate_query
 from chatbot.services import ChatService, SlidingWindowRateLimiter
 
@@ -12,6 +13,26 @@ VALID_QUERY = {
     "date_reference": "tomorrow",
     "language": "en",
     "weather_parameters": ["precipitation"],
+}
+
+FULL_CURRENT = {
+    "current": {
+        "temperature_c": 31.2,
+        "feels_like_c": 34.0,
+        "humidity_pct": 61,
+        "wind_kmh": 14.2,
+        "precipitation_mm": 0.0,
+        "condition": "Partly cloudy",
+    }
+}
+
+FULL_DAY = {
+    "date": "2026-09-06",
+    "temperature_max_c": 34.5,
+    "temperature_min_c": 26.1,
+    "precipitation_probability_pct": 65,
+    "precipitation_mm": 4.2,
+    "condition": "Rain showers",
 }
 
 
