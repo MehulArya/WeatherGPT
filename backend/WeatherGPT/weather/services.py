@@ -65,6 +65,7 @@ class WeatherService:
                 "temperature_min_c": daily["temperature_2m_min"][i],
                 "precipitation_probability_pct": daily["precipitation_probability_max"][i],
                 "precipitation_mm": daily["precipitation_sum"][i],
+                "wind_max_kmh": daily["wind_speed_10m_max"][i],
                 "condition": condition_for(daily["weather_code"][i]),
             }
             for i in range(len(daily["time"]))

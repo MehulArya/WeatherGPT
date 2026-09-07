@@ -35,6 +35,7 @@ FORECAST_PAYLOAD = {
         "temperature_2m_min": [26.1, 25.0, 24.0],
         "precipitation_sum": [0.0, 4.2, 7.0],
         "precipitation_probability_max": [0, 65, 80],
+        "wind_speed_10m_max": [12.5, 18.0, 22.4],
     },
 }
 

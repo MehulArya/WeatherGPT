@@ -1,5 +1,7 @@
 from django.urls import path
 
+from . import views
+
 urlpatterns = [
-    # Phase 7: GET /api/alerts/
+    path("", views.AlertListCreateView.as_view(), name="alert-list"),
 ]

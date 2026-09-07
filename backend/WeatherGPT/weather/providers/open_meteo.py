@@ -18,7 +18,7 @@ CURRENT_PARAMS = (
 )
 DAILY_PARAMS = (
     "weather_code,temperature_2m_max,temperature_2m_min,"
-    "precipitation_sum,precipitation_probability_max"
+    "precipitation_sum,precipitation_probability_max,wind_speed_10m_max"
 )
 
 
