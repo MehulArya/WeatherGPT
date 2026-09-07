@@ -27,3 +27,18 @@ class ChatUnderstandView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(chat_service.understand(**serializer.validated_data))
+
+
+class ChatView(generics.GenericAPIView):
+    """POST /api/chat/ - the full blueprint vertical slice."""
+
+    serializer_class = ChatRequestSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = chat_service.process_message(
+            **serializer.validated_data,
+            client_ip=request.META.get("REMOTE_ADDR", ""),
+        )
+        return Response(result)

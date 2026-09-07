@@ -60,6 +60,15 @@ class LlmError(ApiError):
         )
 
 
+class RateLimitedError(ApiError):
+    def __init__(self):
+        super().__init__(
+            ERROR_RATE_LIMITED,
+            "Too many requests. Please try again in a minute.",
+            status_code=429,
+        )
+
+
 def build_error_body(code: str, message: str) -> dict:
     return {"error": {"code": code, "message": message}}
 
