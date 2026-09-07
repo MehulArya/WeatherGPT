@@ -1,5 +1,3 @@
-"""Generic serializers for the chat API."""
-
 from rest_framework import serializers
 
 

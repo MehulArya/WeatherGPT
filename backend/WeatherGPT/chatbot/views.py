@@ -1,7 +1,3 @@
-"""Thin generic API views for the chat API.
-
-Business logic lives in `chatbot.services.ChatService`.
-"""
 from rest_framework import generics
 from rest_framework.response import Response
 

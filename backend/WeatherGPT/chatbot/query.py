@@ -1,6 +1,6 @@
 """Server-side validation of the LLM query-understanding schema.
 
-The LLM output is not trusted until it passes here (implementation.md section 19).
+The LLM output is not trusted until it passes here.
 """
 import json
 

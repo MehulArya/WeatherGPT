@@ -1,7 +1,3 @@
-"""LLM service contract.
-
-The rest of the app depends on this interface, never on a concrete provider.
-"""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 

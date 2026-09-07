@@ -2,7 +2,7 @@
 
 `understand()` runs the blueprint's core flow:
     user message -> LLM query understanding -> location resolution -> weather retrieval
-and returns a grounded structured query ready for the chat endpoint (Phase 5).
+and returns a grounded structured query ready for the chat endpoint.
 
 Services stay thin and raise shared ApiError types; views contain no logic.
 """
