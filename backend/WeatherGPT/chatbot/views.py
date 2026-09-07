@@ -6,8 +6,6 @@ from chatbot.services import chat_service
 
 
 class ChatHealthView(generics.GenericAPIView):
-    """Config probe - returns provider/model from env (no API call)."""
-
     def get(self, request, *args, **kwargs):
         from chatbot.llm.provider import llm_service
 
