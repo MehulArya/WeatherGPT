@@ -1,5 +1,8 @@
 from django.urls import path
 
+from chatbot.views import ChatHealthView, ChatUnderstandView
+
 urlpatterns = [
-    # Phase 4/5: POST /api/chat/
+    path('health/', ChatHealthView.as_view()),
+    path('understand/', ChatUnderstandView.as_view()),
 ]
