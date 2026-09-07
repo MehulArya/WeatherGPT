@@ -4,11 +4,14 @@ Reads LLM_API_KEY / LLM_MODEL / LLM_BASE_URL from the environment (.env).
 Kept behind the LLMService interface so providers can be swapped.
 """
 import httpx
+import logging
 import os
 from typing import Any, Dict, List
 
 from chatbot.llm.base import LLMService
 from common.errors import LlmError
+
+logger = logging.getLogger(__name__)
 
 QUERY_UNDERSTANDING_SCHEMA = {
     "type": "object",
@@ -58,6 +61,7 @@ class OpenAICompatibleLLM(LLMService):
             response.raise_for_status()
             return response.json()
         except httpx.HTTPError as exc:
+            logger.exception("LLM request to %s failed", self.base_url)
             raise LlmError() from exc
 
     def understand_query(self, user_message: str) -> Dict[str, Any]:
@@ -78,6 +82,7 @@ class OpenAICompatibleLLM(LLMService):
         try:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
+            logger.exception("Unexpected LLM response shape: %.400s", data)
             raise LlmError() from exc
 
     def generate(
@@ -94,6 +99,7 @@ class OpenAICompatibleLLM(LLMService):
         try:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
+            logger.exception("Unexpected LLM response shape: %.400s", data)
             raise LlmError() from exc
 
 
