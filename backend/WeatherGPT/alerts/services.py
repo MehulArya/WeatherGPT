@@ -1,7 +1,7 @@
 """Prototype alert rule engine.
 
-Thresholds come from implementation.md §20. Every alert produced here is
-explicitly non-official guidance (source: prototype-rule-engine).
+Every alert produced here is 
+explicitly non-official guidance.
 """
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
@@ -13,7 +13,6 @@ from weather.services import weather_service
 
 from .models import Alert
 
-# Prototype thresholds (implementation.md §20)
 HEAT_MAX_TEMP_C = 45.0
 RAIN_PROBABILITY_PCT = 80
 RAIN_PRECIPITATION_MM = 20.0

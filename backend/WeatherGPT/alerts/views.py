@@ -7,8 +7,7 @@ from .services import AlertEngine
 
 
 class AlertListCreateView(generics.ListCreateAPIView):
-    """GET/POST /api/alerts/
-
+    """
     GET lists active alerts; when latitude/longitude query params are given
     the prototype rule engine evaluates the current forecast for that
     location first. POST creates an alert row directly (useful for demos).
