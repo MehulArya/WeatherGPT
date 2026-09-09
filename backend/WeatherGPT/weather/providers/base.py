@@ -21,3 +21,13 @@ class WeatherProvider(ABC):
     ) -> Dict[str, Any]:
         """Return daily forecast data between start_date and end_date."""
         raise NotImplementedError
+
+    @abstractmethod
+    def get_hourly_forecast(
+        self,
+        latitude: float,
+        longitude: float,
+        hours: int = 24,
+    ) -> Dict[str, Any]:
+        """Return hourly forecast data for the next ``hours`` hours."""
+        raise NotImplementedError

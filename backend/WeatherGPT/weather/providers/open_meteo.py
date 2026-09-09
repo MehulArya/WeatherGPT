@@ -20,6 +20,10 @@ DAILY_PARAMS = (
     "weather_code,temperature_2m_max,temperature_2m_min,"
     "precipitation_sum,precipitation_probability_max,wind_speed_10m_max"
 )
+HOURLY_PARAMS = (
+    "temperature_2m,precipitation_probability,precipitation,"
+    "weather_code,wind_speed_10m"
+)
 
 
 class OpenMeteoError(Exception):
@@ -41,6 +45,21 @@ class OpenMeteoProvider(WeatherProvider):
             "latitude": latitude,
             "longitude": longitude,
             "current": CURRENT_PARAMS,
+            "timezone": "auto",
+        }
+        return self._get(params)
+
+    def get_hourly_forecast(
+        self,
+        latitude: float,
+        longitude: float,
+        hours: int = 24,
+    ) -> Dict[str, Any]:
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "hourly": HOURLY_PARAMS,
+            "forecast_hours": hours,
             "timezone": "auto",
         }
         return self._get(params)

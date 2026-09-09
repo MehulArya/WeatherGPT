@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import httpx
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from common.errors import LocationNotFoundError, WeatherProviderError
@@ -93,3 +94,80 @@ class LocationEndpointTests(TestCase):
             response = client.get("/api/weather/location/", {"query": "Jaipur"})
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["error"]["code"], "WEATHER_PROVIDER_ERROR")
+
+
+class ReverseGeocodeTests(TestCase):
+    def test_reverse_returns_place_name(self):
+        service = LocationService(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, json={
+                "address": {"city": "Jaipur", "state": "Rajasthan", "country": "India"},
+                "display_name": "Jaipur, Rajasthan, India",
+            })
+        ))
+        data = service.reverse_geocode(26.9124, 75.7873)
+        self.assertEqual(data["name"], "Jaipur")
+        self.assertEqual(data["admin1"], "Rajasthan")
+        self.assertEqual(data["country"], "India")
+
+    def test_reverse_provider_failure(self):
+        service = LocationService(transport=httpx.MockTransport(
+            lambda request: httpx.Response(500, text="boom")
+        ))
+        with self.assertRaises(WeatherProviderError):
+            service.reverse_geocode(26.9124, 75.7873)
+
+
+class SavedLocationEndpointTests(TestCase):
+    def setUp(self):
+        self.url = reverse("saved-location-list")
+        self.key = {"client_key": "test-client-key-123"}
+
+    def _payload(self, **overrides):
+        payload = {**self.key, "name": "Jaipur", "country": "India",
+                   "latitude": "26.91962", "longitude": "75.78781"}
+        payload.update(overrides)
+        return payload
+
+    def test_create_list_delete_flow(self):
+        create = self.client.post(self.url, self._payload(), content_type="application/json")
+        self.assertEqual(create.status_code, 201)
+
+        listing = self.client.get(self.url, self.key)
+        self.assertEqual(len(listing.data), 1)
+        self.assertEqual(listing.data[0]["name"], "Jaipur")
+
+        detail_url = reverse("saved-location-detail", args=[listing.data[0]["id"]])
+        wrong_key = self.client.delete(detail_url + "?client_key=wrong-key-12345")
+        self.assertEqual(wrong_key.status_code, 404)
+
+        delete = self.client.delete(detail_url + "?client_key=" + self.key["client_key"])
+        self.assertEqual(delete.status_code, 204)
+        self.assertEqual(self.client.get(self.url, self.key).data, [])
+
+    def test_client_key_is_required(self):
+        response = self.client.post(self.url, {"name": "X"}, content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_list_without_key_returns_nothing(self):
+        self.client.post(self.url, self._payload(), content_type="application/json")
+        response = self.client.get(self.url)
+        self.assertEqual(response.data, [])
+
+
+class ReverseGeocodeEndpointTests(TestCase):
+    def test_reverse_returns_place_name(self):
+        client = APIClient()
+        with patch("locations.views.location_service") as service:
+            service.reverse_geocode.return_value = {
+                "name": "Jaipur",
+                "admin1": "Rajasthan",
+                "country": "India",
+                "latitude": 26.9124,
+                "longitude": 75.7873,
+            }
+            response = client.get(
+                "/api/weather/location/reverse/",
+                {"latitude": "26.9124", "longitude": "75.7873"},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["name"], "Jaipur")

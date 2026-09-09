@@ -1,7 +1,8 @@
 from datetime import date, timedelta
 from typing import Any, Dict, Optional
 
-from common.errors import WeatherProviderError
+from common.errors import LocationNotFoundError, WeatherProviderError
+from locations.services import location_service
 from weather.providers.base import WeatherProvider
 from weather.providers.open_meteo import OpenMeteoError, OpenMeteoProvider
 from weather.wmo import condition_for
@@ -79,6 +80,55 @@ class WeatherService:
             },
             "daily": forecasts,
         }
+
+
+    def hourly(
+        self,
+        latitude: float,
+        longitude: float,
+        hours: int = 24,
+        location_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if not 1 <= hours <= 48:
+            raise ValueError("hours must be between 1 and 48")
+
+        try:
+            raw = self.provider.get_hourly_forecast(latitude, longitude, hours)
+        except OpenMeteoError as exc:
+            raise WeatherProviderError() from exc
+        hourly = raw["hourly"]
+
+        entries = [
+            {
+                "time": hourly["time"][i],
+                "temperature_c": hourly["temperature_2m"][i],
+                "precipitation_probability_pct": hourly["precipitation_probability"][i],
+                "precipitation_mm": hourly["precipitation"][i],
+                "wind_kmh": hourly["wind_speed_10m"][i],
+                "condition": condition_for(hourly["weather_code"][i]),
+            }
+            for i in range(len(hourly["time"]))
+        ]
+
+        return {
+            "location": {
+                "name": location_name,
+                "latitude": latitude,
+                "longitude": longitude,
+            },
+            "hourly": entries,
+        }
+
+    def compare(self, city1: str, city2: str) -> Dict[str, Any]:
+        """Side-by-side current weather for two cities (blueprint intent: comparison)."""
+        cities = []
+        for name in (city1, city2):
+            results = location_service.search(name, count=1)
+            if not results:
+                raise LocationNotFoundError(name)
+            loc = results[0]
+            cities.append(self.current(loc["latitude"], loc["longitude"], loc["name"]))
+        return {"comparison": cities}
 
 
 # Singleton consumed by the generic views
