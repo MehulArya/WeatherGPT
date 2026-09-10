@@ -8,6 +8,9 @@ class ChatRequestSerializer(serializers.Serializer):
     conversation_id = serializers.IntegerField(
         min_value=1, required=False, allow_null=True
     )
+    units = serializers.ChoiceField(
+        choices=("metric", "imperial"), default="metric", required=False
+    )
 
 
 class MessageSerializer(serializers.ModelSerializer):

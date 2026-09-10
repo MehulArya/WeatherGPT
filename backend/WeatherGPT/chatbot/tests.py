@@ -56,8 +56,10 @@ class SchemaValidationTests(TestCase):
         self.assertEqual(parse_and_validate_query(VALID_QUERY), {
             "intent": "forecast",
             "location_name": "Jaipur",
+            "secondary_location_name": "",
             "date_reference": "tomorrow",
             "language": "en",
+            "units": "metric",
             "weather_parameters": ["precipitation"],
         })
 
@@ -80,6 +82,16 @@ class SchemaValidationTests(TestCase):
 
     def test_rejects_empty_parameters(self):
         bad = dict(VALID_QUERY, weather_parameters=[])
+        with self.assertRaises(Exception):
+            parse_and_validate_query(bad)
+
+    def test_rejects_invalid_units(self):
+        bad = dict(VALID_QUERY, units="kelvin")
+        with self.assertRaises(Exception):
+            parse_and_validate_query(bad)
+
+    def test_rejects_overlong_secondary_location(self):
+        bad = dict(VALID_QUERY, secondary_location_name="x" * 101)
         with self.assertRaises(Exception):
             parse_and_validate_query(bad)
 
@@ -233,6 +245,121 @@ class VerticalSliceTests(TestCase):
             service.process_message("first", client_ip="ip")  # uses the single allowed request
             with self.assertRaises(RateLimitedError):
                 service.process_message("second", client_ip="ip")
+
+    def test_process_message_comparison_intent_returns_both_cities(self):
+        fake = FakeLLM(understand_output=dict(VALID_QUERY, intent="comparison",
+                                              secondary_location_name="Delhi"))
+        service = self._make_service(fake)
+        comparison_entries = [
+            {"location": {"name": "Jaipur", "latitude": 26.9124, "longitude": 75.7873},
+             "current": {"temperature_c": 31.2, "feels_like_c": 34.0, "humidity_pct": 61,
+                         "wind_kmh": 14.2, "precipitation_mm": 0.0, "condition": "Partly cloudy"}},
+            {"location": {"name": "Delhi", "latitude": 28.6139, "longitude": 77.2090},
+             "current": {"temperature_c": 34.1, "feels_like_c": 37.0, "humidity_pct": 50,
+                         "wind_kmh": 11.0, "precipitation_mm": 0.0, "condition": "Sunny"}},
+        ]
+
+        def _fake_search(query, count=1):
+            return [{"name": query, "country": "India",
+                     "latitude": 26.9124 if query == "Jaipur" else 28.6139,
+                     "longitude": 75.7873 if query == "Jaipur" else 77.2090}]
+
+        with patch("chatbot.services.location_service.search", side_effect=_fake_search), \
+             patch("chatbot.services.weather_service.current", side_effect=comparison_entries):
+            result = service.process_message(
+                "Is Delhi hotter than Jaipur right now?", client_ip="127.0.0.1")
+
+        self.assertEqual(result["intent"], "comparison")
+        self.assertEqual(result["location"]["name"], "Jaipur")
+        self.assertEqual(len(result["weather_context"]["comparison"]), 2)
+        self.assertEqual(
+            result["weather_context"]["comparison"][1]["current"]["temperature_c"], 34.1)
+        self.assertIn("Comparison:", fake.generated_prompts[0])
+
+    def test_process_message_advisory_injects_prototype_alerts(self):
+        class FakeAlertsEngine:
+            def evaluate_forecast(self, latitude, longitude, location_name, forecast_daily):
+                return [{"id": 1, "alert_type": "rain", "severity": "medium",
+                         "title": "Heavy rain likely on 2026-09-06",
+                         "description": "4.2 mm rain expected (65% probability).",
+                         "advice": "Carry rain protection."}]
+
+        fake = FakeLLM(understand_output=dict(VALID_QUERY, intent="advisory", date_reference=""))
+        service = ChatService(llm=fake, alerts_engine=FakeAlertsEngine(),
+                              rate_limiter=SlidingWindowRateLimiter(max_requests=100))
+        with patch("chatbot.services.location_service.search", return_value=[
+            {"name": "Jaipur", "country": "India", "latitude": 26.9124, "longitude": 75.7873}
+        ]), patch("chatbot.services.weather_service.current", return_value={
+            "current": {"temperature_c": 31.2, "feels_like_c": 34.0, "humidity_pct": 61,
+                        "wind_kmh": 14.2, "precipitation_mm": 0.0, "condition": "Partly cloudy"}
+        }), patch("chatbot.services.weather_service.forecast", return_value={
+            "daily": [FULL_DAY]
+        }):
+            result = service.process_message(
+                "Should I carry an umbrella in Jaipur?", client_ip="127.0.0.1")
+
+        self.assertEqual(result["intent"], "advisory")
+        self.assertEqual(result["weather_context"]["alerts"][0]["alert_type"], "rain")
+        prompt = fake.generated_prompts[0]
+        self.assertIn("Heavy rain likely on 2026-09-06", prompt)
+        self.assertIn("Give practical advice", prompt)
+
+    def test_process_message_fetches_hourly_for_tonight(self):
+        fake = FakeLLM(understand_output=dict(VALID_QUERY, date_reference="tonight"))
+        service = self._make_service(fake)
+        hourly = [{"time": "2026-09-06T20:00", "temperature_c": 28.9,
+                   "precipitation_probability_pct": 70, "precipitation_mm": 2.0,
+                   "wind_kmh": 9.0, "condition": "Rain showers"}]
+        with patch("chatbot.services.location_service.search", return_value=[
+            {"name": "Jaipur", "country": "India", "latitude": 26.9124, "longitude": 75.7873}
+        ]), patch("chatbot.services.weather_service.current", return_value={
+            "current": {"temperature_c": 31.2, "feels_like_c": 34.0, "humidity_pct": 61,
+                        "wind_kmh": 14.2, "precipitation_mm": 0.0, "condition": "Partly cloudy"}
+        }), patch("chatbot.services.weather_service.forecast", return_value={
+            "daily": [FULL_DAY]
+        }), patch("chatbot.services.weather_service.hourly", return_value={
+            "hourly": hourly
+        }) as hourly_call:
+            result = service.process_message(
+                "Is it going to rain tonight in Jaipur?", client_ip="127.0.0.1")
+
+        hourly_call.assert_called_once()
+        self.assertEqual(result["weather_context"]["hourly"][0]["time"], "2026-09-06T20:00")
+        self.assertIn("Hourly (next 1)", fake.generated_prompts[0])
+
+    def test_process_message_imperial_units_pass_through(self):
+        fake = FakeLLM(understand_output=dict(VALID_QUERY, units="imperial"))
+        service = self._make_service(fake)
+        with patch("chatbot.services.location_service.search", return_value=[
+            {"name": "Jaipur", "country": "India", "latitude": 26.9124, "longitude": 75.7873}
+        ]), patch("chatbot.services.weather_service.current", return_value={
+            "current": {"temperature_c": 31.2, "feels_like_c": 34.0, "humidity_pct": 61,
+                        "wind_kmh": 14.2, "precipitation_mm": 0.0, "condition": "Partly cloudy"}
+        }), patch("chatbot.services.weather_service.forecast", return_value={
+            "daily": [FULL_DAY]
+        }):
+            result = service.process_message(
+                "What is the weather in Jaipur tomorrow in Fahrenheit?", client_ip="127.0.0.1")
+
+        self.assertEqual(result["weather_context"]["units"], "imperial")
+        self.assertIn("Units: imperial", fake.generated_prompts[0])
+
+    def test_process_message_hindi_prompt_and_language(self):
+        fake = FakeLLM(understand_output=dict(VALID_QUERY, language="hi"))
+        service = self._make_service(fake)
+        with patch("chatbot.services.location_service.search", return_value=[
+            {"name": "Jaipur", "country": "India", "latitude": 26.9124, "longitude": 75.7873}
+        ]), patch("chatbot.services.weather_service.current", return_value={
+            "current": {"temperature_c": 31.2, "feels_like_c": 34.0, "humidity_pct": 61,
+                        "wind_kmh": 14.2, "precipitation_mm": 0.0, "condition": "Partly cloudy"}
+        }), patch("chatbot.services.weather_service.forecast", return_value={
+            "daily": [FULL_DAY]
+        }):
+            result = service.process_message(
+                "क्या कल जयपुर में बारिश होगी?", client_ip="127.0.0.1")
+
+        self.assertEqual(result["language"], "hi")
+        self.assertIn("Hindi (Devanagari script)", fake.generated_prompts[0])
 
 
 class ChatEndpointFullTests(TestCase):

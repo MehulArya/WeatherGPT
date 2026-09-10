@@ -5,6 +5,7 @@ from common.errors import LocationNotFoundError, WeatherProviderError
 from locations.services import location_service
 from weather.providers.base import WeatherProvider
 from weather.providers.open_meteo import OpenMeteoError, OpenMeteoProvider
+from weather.units import convert_current, convert_daily, convert_hourly
 from weather.wmo import condition_for
 
 MAX_FORECAST_DAYS = 16
@@ -19,26 +20,29 @@ class WeatherService:
         latitude: float,
         longitude: float,
         location_name: Optional[str] = None,
+        units: str = "metric",
     ) -> Dict[str, Any]:
         try:
             raw = self.provider.get_current_weather(latitude, longitude)
         except OpenMeteoError as exc:
             raise WeatherProviderError() from exc
         current = raw["current"]
+        metric = {
+            "temperature_c": current["temperature_2m"],
+            "feels_like_c": current["apparent_temperature"],
+            "humidity_pct": current["relative_humidity_2m"],
+            "wind_kmh": current["wind_speed_10m"],
+            "precipitation_mm": current["precipitation"],
+            "condition": condition_for(current["weather_code"]),
+        }
         return {
             "location": {
                 "name": location_name,
                 "latitude": latitude,
                 "longitude": longitude,
             },
-            "current": {
-                "temperature_c": current["temperature_2m"],
-                "feels_like_c": current["apparent_temperature"],
-                "humidity_pct": current["relative_humidity_2m"],
-                "wind_kmh": current["wind_speed_10m"],
-                "precipitation_mm": current["precipitation"],
-                "condition": condition_for(current["weather_code"]),
-            },
+            "units": units,
+            "current": convert_current(metric, units),
         }
 
     def forecast(
@@ -47,6 +51,7 @@ class WeatherService:
         longitude: float,
         days: int = 7,
         location_name: Optional[str] = None,
+        units: str = "metric",
     ) -> Dict[str, Any]:
         if not 1 <= days <= MAX_FORECAST_DAYS:
             raise ValueError("days must be between 1 and 16")
@@ -60,15 +65,18 @@ class WeatherService:
         daily = raw["daily"]
 
         forecasts = [
-            {
-                "date": daily["time"][i],
-                "temperature_max_c": daily["temperature_2m_max"][i],
-                "temperature_min_c": daily["temperature_2m_min"][i],
-                "precipitation_probability_pct": daily["precipitation_probability_max"][i],
-                "precipitation_mm": daily["precipitation_sum"][i],
-                "wind_max_kmh": daily["wind_speed_10m_max"][i],
-                "condition": condition_for(daily["weather_code"][i]),
-            }
+            convert_daily(
+                {
+                    "date": daily["time"][i],
+                    "temperature_max_c": daily["temperature_2m_max"][i],
+                    "temperature_min_c": daily["temperature_2m_min"][i],
+                    "precipitation_probability_pct": daily["precipitation_probability_max"][i],
+                    "precipitation_mm": daily["precipitation_sum"][i],
+                    "wind_max_kmh": daily["wind_speed_10m_max"][i],
+                    "condition": condition_for(daily["weather_code"][i]),
+                },
+                units,
+            )
             for i in range(len(daily["time"]))
         ]
 
@@ -78,6 +86,7 @@ class WeatherService:
                 "latitude": latitude,
                 "longitude": longitude,
             },
+            "units": units,
             "daily": forecasts,
         }
 
@@ -88,6 +97,7 @@ class WeatherService:
         longitude: float,
         hours: int = 24,
         location_name: Optional[str] = None,
+        units: str = "metric",
     ) -> Dict[str, Any]:
         if not 1 <= hours <= 48:
             raise ValueError("hours must be between 1 and 48")
@@ -99,14 +109,17 @@ class WeatherService:
         hourly = raw["hourly"]
 
         entries = [
-            {
-                "time": hourly["time"][i],
-                "temperature_c": hourly["temperature_2m"][i],
-                "precipitation_probability_pct": hourly["precipitation_probability"][i],
-                "precipitation_mm": hourly["precipitation"][i],
-                "wind_kmh": hourly["wind_speed_10m"][i],
-                "condition": condition_for(hourly["weather_code"][i]),
-            }
+            convert_hourly(
+                {
+                    "time": hourly["time"][i],
+                    "temperature_c": hourly["temperature_2m"][i],
+                    "precipitation_probability_pct": hourly["precipitation_probability"][i],
+                    "precipitation_mm": hourly["precipitation"][i],
+                    "wind_kmh": hourly["wind_speed_10m"][i],
+                    "condition": condition_for(hourly["weather_code"][i]),
+                },
+                units,
+            )
             for i in range(len(hourly["time"]))
         ]
 
@@ -116,10 +129,11 @@ class WeatherService:
                 "latitude": latitude,
                 "longitude": longitude,
             },
+            "units": units,
             "hourly": entries,
         }
 
-    def compare(self, city1: str, city2: str) -> Dict[str, Any]:
+    def compare(self, city1: str, city2: str, units: str = "metric") -> Dict[str, Any]:
         """Side-by-side current weather for two cities (blueprint intent: comparison)."""
         cities = []
         for name in (city1, city2):
@@ -127,8 +141,8 @@ class WeatherService:
             if not results:
                 raise LocationNotFoundError(name)
             loc = results[0]
-            cities.append(self.current(loc["latitude"], loc["longitude"], loc["name"]))
-        return {"comparison": cities}
+            cities.append(self.current(loc["latitude"], loc["longitude"], loc["name"], units=units))
+        return {"units": units, "comparison": cities}
 
 
 # Singleton consumed by the generic views

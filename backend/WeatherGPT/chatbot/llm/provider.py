@@ -18,8 +18,10 @@ QUERY_UNDERSTANDING_SCHEMA = {
     "properties": {
         "intent": {"type": "string", "enum": ["current_weather", "forecast", "comparison", "advisory", "alert"]},
         "location_name": {"type": "string"},
+        "secondary_location_name": {"type": "string"},
         "date_reference": {"type": "string"},
         "language": {"type": "string", "enum": ["en", "hi"]},
+        "units": {"type": "string", "enum": ["metric", "imperial"]},
         "weather_parameters": {"type": "array", "items": {"type": "string"}},
     },
     "required": ["intent", "location_name", "date_reference", "language", "weather_parameters"],
@@ -73,7 +75,15 @@ class OpenAICompatibleLLM(LLMService):
                     "from the user message. Reply with JSON only, matching this schema: "
                     f"{QUERY_UNDERSTANDING_SCHEMA}. "
                     "Set weather_parameters to an array like temperature/precipitation/wind. "
-                    "If no location is mentioned, set location_name to an empty string."
+                    "If no location is mentioned, set location_name to an empty string. "
+                    "If the user compares two places (X vs Y, X or Y, hotter/colder/warmer, "
+                    "which is better), set intent to 'comparison', put the first place in "
+                    "location_name and the second in secondary_location_name. "
+                    "Otherwise leave secondary_location_name as an empty string. "
+                    "If the message mentions fahrenheit, °F, imperial, or mph, set units "
+                    "to 'imperial'; otherwise set units to 'metric'. "
+                    "If the message is written in Hindi (Devanagari script) or Hinglish "
+                    "asking about the weather, set language to 'hi'; otherwise 'en'."
                 ),
             },
             {"role": "user", "content": user_message},
