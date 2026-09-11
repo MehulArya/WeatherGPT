@@ -1,0 +1,128 @@
+@import "./tokens.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--dur-slow) var(--ease-editorial),
+    color var(--dur-slow) var(--ease-editorial);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+/* visible, deliberate focus ring — never the browser default, never removed */
+:focus-visible {
+  outline: 2px solid var(--accent-500);
+  outline-offset: 3px;
+}
+
+/* fixed grain texture over the whole app — kills the flat-gradient tell */
+.grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-data);
+}
+
+.container {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+@media (min-width: 900px) {
+  .container {
+    padding: 0 var(--space-6);
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.hairline {
+  border: none;
+  border-top: var(--hairline);
+  margin: 0;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(196, 86, 43, 0.08) 50%,
+    transparent 70%
+  );
+  animation: shimmer 1.6s var(--ease-instrument) infinite;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
